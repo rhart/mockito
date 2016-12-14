@@ -6,6 +6,7 @@ package org.mockito.internal.stubbing.answers;
 
 import org.junit.Test;
 import org.mockito.internal.invocation.InvocationBuilder;
+import org.mockito.invocation.Invocation;
 import org.mockito.invocation.InvocationOnMock;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,6 +38,36 @@ public class ReturnsArgumentAtTest {
     }
 
     @Test
+    public void should_identify_argument_type_of_parameters() throws Exception {
+        assertThat(new ReturnsArgumentAt(1).returnedTypeOnSignature(new InvocationBuilder().method("varargsReturningString")
+                                                                                           .argTypes(Object[].class)
+                                                                                           .args(new Object(), new Object(), new Object()).toInvocation())).isEqualTo(Object.class);
+        assertThat(new ReturnsArgumentAt(0).returnedTypeOnSignature(new InvocationBuilder().method("oneArray")
+                                                                                           .argTypes(boolean[].class)
+                                                                                           .args(true, false, false).toInvocation())).isEqualTo(boolean[].class);
+        assertThat(new ReturnsArgumentAt(0).returnedTypeOnSignature(new InvocationBuilder().method("mixedVarargsReturningString")
+                                                                                           .argTypes(Object.class, String[].class)
+                                                                                           .args(new Object(), new String[]{"A", "B", "C"}).toInvocation())).isEqualTo(Object.class);
+        assertThat(new ReturnsArgumentAt(1).returnedTypeOnSignature(new InvocationBuilder().method("mixedVarargsReturningString")
+                                                                                           .argTypes(Object.class, String[].class)
+                                                                                           .args(new Object(), new String[]{"A", "B", "C"}).toInvocation())).isEqualTo(String.class);
+    }
+
+    @Test
+    public void should_handle_returning_vararg_as_array() throws Throwable {
+        Invocation mixedVarargsReturningStringArray = new InvocationBuilder().method("mixedVarargsReturningStringArray")
+                                                                             .argTypes(Object.class, String[].class)
+                                                                             .args(new Object(), new String[]{"A", "B", "C"}).toInvocation();
+        assertThat(new ReturnsArgumentAt(1).returnedTypeOnSignature(mixedVarargsReturningStringArray)).isEqualTo(String[].class);
+        assertThat(new ReturnsArgumentAt(1).answer(mixedVarargsReturningStringArray)).isEqualTo(new String[]{"A", "B", "C"});
+        Invocation mixedVarargsReturningObjectArray = new InvocationBuilder().method("mixedVarargsReturningStringArray")
+                                                                             .argTypes(Object.class, String[].class)
+                                                                             .args(new Object(), new String[]{"A", "B", "C"}).toInvocation();
+        assertThat(new ReturnsArgumentAt(1).returnedTypeOnSignature(mixedVarargsReturningObjectArray)).isEqualTo(String[].class);
+        assertThat(new ReturnsArgumentAt(1).answer(mixedVarargsReturningObjectArray)).isEqualTo(new String[]{"A", "B", "C"});
+    }
+
+    @Test
     public void should_raise_an_exception_if_index_is_not_in_allowed_range_at_creation_time() throws Throwable {
         try {
             new ReturnsArgumentAt(-30);
@@ -51,8 +82,9 @@ public class ReturnsArgumentAtTest {
     }
 
     private static InvocationOnMock invocationWith(Object... parameters) {
-        return new InvocationBuilder().method("varargsReturningString").argTypes(Object[].class)
-             .args(parameters).toInvocation();
+        return new InvocationBuilder().method("varargsReturningString")
+                                      .argTypes(Object[].class)
+                                      .args(parameters).toInvocation();
     }
 
 }

@@ -5,15 +5,14 @@
 
 package org.mockito.internal.invocation;
 
+import java.lang.reflect.Method;
+import java.util.LinkedList;
+import java.util.List;
 import org.mockito.Mockito;
 import org.mockito.internal.debugging.LocationImpl;
 import org.mockito.invocation.Invocation;
 import org.mockito.invocation.Location;
 import org.mockitousage.IMethods;
-
-import java.lang.reflect.Method;
-import java.util.LinkedList;
-import java.util.List;
 
 import static java.util.Arrays.asList;
 
@@ -25,7 +24,7 @@ public class InvocationBuilder {
 
     private String methodName = "simpleMethod";
     private int sequenceNumber = 0;
-    private Object[] args = new Object[] {};
+    private Object[] args = new Object[]{};
     private Object mock = Mockito.mock(IMethods.class);
     private Method method;
     private boolean verified;
@@ -34,7 +33,7 @@ public class InvocationBuilder {
 
     /**
      * Build the invocation
-     *
+     * <p>
      * If the method was not specified, use IMethods methods.
      *
      * @return invocation
@@ -58,9 +57,13 @@ public class InvocationBuilder {
                 throw new RuntimeException("builder only creates invocations of IMethods interface", e);
             }
         }
-        
-        Invocation i = new InvocationImpl(mock, new SerializableMethod(method), args, sequenceNumber, null,
-                location == null? new LocationImpl() : location);
+
+        Invocation i = new InvocationImpl(mock,
+                                          new SerializableMethod(method),
+                                          args,
+                                          sequenceNumber,
+                                          null,
+                                          location == null ? new LocationImpl() : location);
         if (verified) {
             i.markVerified();
         }
@@ -68,7 +71,7 @@ public class InvocationBuilder {
     }
 
     public InvocationBuilder method(String methodName) {
-        this.methodName  = methodName;
+        this.methodName = methodName;
         return this;
     }
 
@@ -77,13 +80,13 @@ public class InvocationBuilder {
         return this;
     }
 
-    public InvocationBuilder args(Object ... args) {
+    public InvocationBuilder args(Object... args) {
         this.args = args;
         return this;
     }
-    
+
     public InvocationBuilder arg(Object o) {
-        this.args = new Object[] {o};
+        this.args = new Object[]{o};
         return this;
     }
 
@@ -109,7 +112,7 @@ public class InvocationBuilder {
     public InvocationBuilder simpleMethod() {
         return this.method("simpleMethod");
     }
-    
+
     public InvocationBuilder differentMethod() {
         return this.method("differentMethod");
     }

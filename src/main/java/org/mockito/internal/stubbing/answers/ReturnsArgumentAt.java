@@ -4,17 +4,18 @@
  */
 package org.mockito.internal.stubbing.answers;
 
+import java.io.Serializable;
+import java.lang.reflect.Method;
+import org.mockito.invocation.Invocation;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import static org.mockito.internal.exceptions.Reporter.invalidArgumentPositionRangeAtInvocationTime;
 import static org.mockito.internal.exceptions.Reporter.invalidArgumentRangeAtIdentityAnswerCreationTime;
 
-import java.io.Serializable;
-
 /**
  * Returns the passed parameter identity at specified index.
- *
+ * <p>
  * <p>The <code>argumentIndex</code> represents the index in the argument array of the invocation.</p>
  * <p>If this number equals -1 then the last argument is returned.</p>
  *
@@ -33,7 +34,7 @@ public class ReturnsArgumentAt implements Answer<Object>, Serializable {
      * Build the identity answer to return the argument at the given position in the argument array.
      *
      * @param wantedArgumentPosition The position of the argument identity to return in the invocation.
-     *                      Using <code>-1</code> indicates the last argument.
+     *                               Using <code>-1</code> indicates the last argument.
      */
     public ReturnsArgumentAt(int wantedArgumentPosition) {
         this.wantedArgumentPosition = checkWithinAllowedRange(wantedArgumentPosition);
@@ -41,14 +42,23 @@ public class ReturnsArgumentAt implements Answer<Object>, Serializable {
 
     public Object answer(InvocationOnMock invocation) throws Throwable {
         validateIndexWithinInvocationRange(invocation);
-        return invocation.getArgument(actualArgumentPosition(invocation));
+
+        int actualArgumentPosition = actualArgumentPosition(invocation);
+        if (wantedArgIsVarargAndIsCompatibleWithReturnType(invocation.getMethod(), actualArgumentPosition)) {
+            return ((Invocation) invocation).getRawArguments()[actualArgumentPosition];
+        }
+        return invocation.getArgument(actualArgumentPosition);
     }
 
+    private boolean wantedArgIsVarargAndIsCompatibleWithReturnType(Method method, int actualArgumentPosition) {
+        int varargPosition = method.getParameterTypes().length - 1;
+        return method.isVarArgs() && actualArgumentPosition == varargPosition;
+    }
 
     private int actualArgumentPosition(InvocationOnMock invocation) {
         return returningLastArg() ?
-                lastArgumentIndexOf(invocation) :
-                argumentIndexOf(invocation);
+               lastArgumentIndexOf(invocation) :
+               argumentIndexOf(invocation);
     }
 
     private boolean returningLastArg() {
@@ -97,16 +107,21 @@ public class ReturnsArgumentAt implements Answer<Object>, Serializable {
     public Class<?> returnedTypeOnSignature(InvocationOnMock invocation) {
         int actualArgumentPosition = actualArgumentPosition(invocation);
 
-        if(!invocation.getMethod().isVarArgs()) {
-            return invocation.getMethod().getParameterTypes()[actualArgumentPosition];
+        Class<?>[] parameterTypes = invocation.getMethod().getParameterTypes();
+        if (!invocation.getMethod().isVarArgs()) {
+            return parameterTypes[actualArgumentPosition];
         }
 
-        Class<?>[] parameterTypes = invocation.getMethod().getParameterTypes();
         int varargPosition = parameterTypes.length - 1;
 
-        if(actualArgumentPosition < varargPosition) {
+        if (actualArgumentPosition < varargPosition) {
             return parameterTypes[actualArgumentPosition];
         } else {
+            // try the vararg array type
+            if (actualArgumentPosition == varargPosition
+                && invocation.getMethod().getReturnType().isAssignableFrom(parameterTypes[actualArgumentPosition])) {
+                return parameterTypes[actualArgumentPosition]; // move to MethodInfo ?
+            }
             return parameterTypes[varargPosition].getComponentType();
         }
     }
